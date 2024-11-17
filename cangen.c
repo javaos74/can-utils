@@ -191,7 +191,7 @@ static void print_usage(char *prg)
 	fprintf(stderr, "         -A <mode>     (CAN XL AF generation mode - see below, no e/o mode)\n");
 	fprintf(stderr, "         -V <mode>     (CAN XL VCID generation mode - see below, no e/o mode)\n");
 	fprintf(stderr, "         -p <timeout>  (poll on -ENOBUFS to write frames with <timeout> ms)\n");
-	fprintf(stderr, "         -P <id1;id2>  (CAN ID pool separated by ;)\n");	
+	fprintf(stderr, "         -P <id1-id2>  (CAN ID pool separated by -)\n");	
 	fprintf(stderr, "         -n <count>    (terminate after <count> CAN frames - default infinite)\n");
 	fprintf(stderr, "         -i            (ignore -ENOBUFS return values on write() syscalls)\n");
 	fprintf(stderr, "         -x            (disable local loopback of generated CAN frames)\n");
@@ -225,7 +225,7 @@ static void print_usage(char *prg)
 	fprintf(stderr, "\t(full load test with polling, 10ms timeout)\n");
 	fprintf(stderr, "%s vcan0\n", prg);
 	fprintf(stderr, "\t(my favourite default :)\n\n");
-	fprintf(stderr, "%s vcan0 -g 10 -p 10 -I p -P 123;230;12F;82;32\n", prg);
+	fprintf(stderr, "%s vcan0 -g 10 -p 10 -I p -P 123-230-12F-82-32\n", prg);
 	fprintf(stderr, "\t(my favourite default :)\n\n");
 }
 
@@ -682,7 +682,7 @@ int main(int argc, char **argv)
 			break;
 
 		case 'P':
-		    char* _token = strtok( optarg, ";");
+		    char* _token = strtok( optarg, "-");
 			while( _token != NULL) {
 				id_pools = realloc(id_pools, sizeof(char*) * (id_pools_count+ 1));
 				if( id_pools == NULL) {
@@ -698,7 +698,7 @@ int main(int argc, char **argv)
 				strcpy( id_pools[id_pools_count], _token);
 				
 				id_pools_count++;
-				_token = strtok(NULL, ";");
+				_token = strtok(NULL, "-");
 			}
 			break;
 
