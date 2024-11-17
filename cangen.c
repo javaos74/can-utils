@@ -82,6 +82,8 @@
 #define MODE_RANDOM_EVEN 3
 #define MODE_RANDOM_ODD 4
 #define MODE_RANDOM_FIX 5
+#define MODE_POOL 6
+
 
 #define NIBBLE_H 1
 #define NIBBLE_L 2
@@ -189,6 +191,7 @@ static void print_usage(char *prg)
 	fprintf(stderr, "         -A <mode>     (CAN XL AF generation mode - see below, no e/o mode)\n");
 	fprintf(stderr, "         -V <mode>     (CAN XL VCID generation mode - see below, no e/o mode)\n");
 	fprintf(stderr, "         -p <timeout>  (poll on -ENOBUFS to write frames with <timeout> ms)\n");
+	fprintf(stderr, "         -P <id1;id2>  (CAN ID pool separated by ;)\n");	
 	fprintf(stderr, "         -n <count>    (terminate after <count> CAN frames - default infinite)\n");
 	fprintf(stderr, "         -i            (ignore -ENOBUFS return values on write() syscalls)\n");
 	fprintf(stderr, "         -x            (disable local loopback of generated CAN frames)\n");
@@ -198,6 +201,7 @@ static void print_usage(char *prg)
 	fprintf(stderr, " 'r'     => random values (default)\n");
 	fprintf(stderr, " 'e'     => random values, even ID\n");
 	fprintf(stderr, " 'o'     => random values, odd ID\n");
+	fprintf(stderr, " 'p'     => ID from pool\n");
 	fprintf(stderr, " 'i'     => increment values\n");
 	fprintf(stderr, " <value> => fixed value (in hexadecimal for -I and -D)\n");
 	fprintf(stderr, "         => nibbles written as '%c' are randomized (only -D)\n\n", CHAR_RANDOM);
@@ -220,6 +224,8 @@ static void print_usage(char *prg)
 	fprintf(stderr, "%s vcan0 -g 0 -p 10 -x\n", prg);
 	fprintf(stderr, "\t(full load test with polling, 10ms timeout)\n");
 	fprintf(stderr, "%s vcan0\n", prg);
+	fprintf(stderr, "\t(my favourite default :)\n\n");
+	fprintf(stderr, "%s vcan0 -g 10 -p 10 -I p -P 123;230;12F;82;32\n", prg);
 	fprintf(stderr, "\t(my favourite default :)\n\n");
 }
 
@@ -482,6 +488,9 @@ int main(int argc, char **argv)
 	unsigned long rnd;
 	unsigned char fixdata[CANFD_MAX_DLEN];
 	unsigned char rand_position[CANFD_MAX_DLEN] = { 0 };
+	char ** id_pools = NULL; /* CAN ID pool */
+	int id_pools_count = 0;
+	int sent_count = 0;
 
 	int opt;
 	int s; /* socket */
@@ -585,6 +594,8 @@ int main(int argc, char **argv)
 				id_mode = MODE_RANDOM_EVEN;
 			} else if (optarg[0] == 'o') {
 				id_mode = MODE_RANDOM_ODD;
+			} else if (optarg[0] == 'p') {
+				id_mode = MODE_POOL;
 			} else {
 				id_mode = MODE_FIX;
 				cu.fd.can_id = strtoul(optarg, NULL, 16);
@@ -667,6 +678,27 @@ int main(int argc, char **argv)
 					printf("Bad xl_vcid definition '%s'.\n", optarg);
 					exit(1);
 				}
+			}
+			break;
+
+		case 'P':
+		    char* _token = strtok( optarg, ";");
+			while( _token != NULL) {
+				id_pools = realloc(id_pools, sizeof(char*) * (id_pools_count+ 1));
+				if( id_pools == NULL) {
+					printf("failed to realloc memory ..");
+					exit(2);
+				}
+				id_pools[id_pools_count] = malloc( strlen(_token)+1);
+				if( id_pools[id_pools_count] == NULL) {
+					printf("failed to alloc memory ..");
+					exit(2);
+				}
+				memset( id_pools[id_pools_count], 0x00);
+				strcpy( id_pools[id_pools_count], _token);
+				
+				id_pools_count++;
+				_token = strtok(NULL, ";")	
 			}
 			break;
 
@@ -843,6 +875,8 @@ int main(int argc, char **argv)
 		cu.fd.__res0 = 0;
 		cu.fd.__res1 = 0;
 
+		sent_count ++;
+
 		if (count && (--count == 0))
 			running = 0;
 
@@ -872,6 +906,8 @@ int main(int argc, char **argv)
 			cu.fd.can_id = random() & ~0x1;
 		else if (id_mode == MODE_RANDOM_ODD)
 			cu.fd.can_id = random() | 0x1;
+		else if (id_mode == MODE_POOL)
+			cu.fd.can_id = strtol( id_pools[sent_count % id_pools_count], NULL, 16);
 
 		if (extended) {
 			cu.fd.can_id &= CAN_EFF_MASK;
