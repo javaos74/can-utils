@@ -521,7 +521,7 @@ int main(int argc, char **argv)
 		{ 0,		0,			0, 0 },
 	};
 
-	while ((opt = getopt_long(argc, argv, "g:atefbEXR8mI:L:D:F:S:A:V:p:n:ixc:vh?", long_options, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "g:atefbEXR8mI:L:D:F:S:A:V:P:p:n:ixc:vh?", long_options, NULL)) != -1) {
 		switch (opt) {
 		case 'g':
 			gap = strtod(optarg, NULL);
