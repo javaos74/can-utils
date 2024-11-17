@@ -694,11 +694,11 @@ int main(int argc, char **argv)
 					printf("failed to alloc memory ..");
 					exit(2);
 				}
-				memset( id_pools[id_pools_count], 0x00);
+				memset( id_pools[id_pools_count], 0x00, strlen(_token));
 				strcpy( id_pools[id_pools_count], _token);
 				
 				id_pools_count++;
-				_token = strtok(NULL, ";")	
+				_token = strtok(NULL, ";");
 			}
 			break;
 
